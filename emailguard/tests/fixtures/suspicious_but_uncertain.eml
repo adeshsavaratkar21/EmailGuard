@@ -1,0 +1,9 @@
+From: Portal Notice <notices@internal.example.test>
+To: user@example.test
+Subject: Please review your portal details
+Date: Mon, 5 Oct 2026 10:05:00 +0530
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Please review the portal message here:
+http://portal.example.test:8080/verify?next=%2Faccount

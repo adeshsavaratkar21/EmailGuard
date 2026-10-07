@@ -1,0 +1,10 @@
+From: PayPal Billing <billing@paypa1-security.com>
+To: user@example.test
+Reply-To: secure@paypa1-security.com
+Subject: Urgent: verify your account
+Date: Mon, 5 Oct 2026 09:20:00 +0530
+Authentication-Results: mx.synthetic.test; spf=pass smtp.mailfrom=paypa1-security.com; dkim=fail header.d=paypa1-security.com; dmarc=fail header.from=paypa1-security.com policy=reject
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>Your account needs verification.</p><a href="https://paypa1-security.com/login/verify">Continue</a></body></html>

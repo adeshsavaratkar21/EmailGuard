@@ -1,0 +1,12 @@
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.30,<1.0
+python-multipart>=0.0.9
+SQLAlchemy>=2.0,<3.0
+dnspython>=2.7,<3.0
+dkimpy>=1.1.6
+cryptography>=43.0
+psycopg[binary]>=3.2,<4.0
+rapidfuzz>=3.10,<4.0
+pyspf>=2.0
+publicsuffix2>=2.20191221
+certifi>=2024.0

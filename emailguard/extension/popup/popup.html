@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EmailGuard</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="popup-shell">
+    <header class="popup-header">
+      <div class="popup-brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8 20 6v5.2c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6l8-3.2Z"/><path d="m8.5 12.1 2.2 2.2 4.8-5"/></svg></div>
+      <div class="popup-brand-copy"><strong>Email<span>Guard</span></strong><small>LINK SAFETY</small></div>
+      <span class="engine-dot" id="engineDot" title="Checking API"></span>
+    </header>
+    <section id="loadingView" class="loading-view"><span class="loader"></span><strong>Checking this page…</strong><small>Sending only the URL to your EmailGuard backend.</small></section>
+    <section id="unsupportedView" class="message-view hidden"><div class="message-icon neutral">i</div><strong>Page can’t be scanned</strong><p>Chrome’s internal pages and extension pages can’t be sent to the EmailGuard analyzer.</p></section>
+    <section id="errorView" class="message-view hidden"><div class="message-icon error">!</div><strong>Couldn’t reach EmailGuard</strong><p id="errorText">Start the local FastAPI backend, then try again.</p><button id="retryButton" class="retry-button">Try again</button></section>
+    <section id="resultView" class="result-view hidden">
+      <div class="scanned-url"><span class="url-globe">◎</span><span id="scannedUrl" title=""></span></div>
+      <div class="score-block">
+        <div class="score-ring" id="scoreRing"><div><strong id="scoreValue">—</strong><small>/ 100</small></div></div>
+        <div class="score-copy"><span class="small-label">SAFETY SCORE</span><span id="classification" class="classification">—</span><span id="recommendation" class="recommendation">—</span></div>
+      </div>
+      <div class="signal-title"><strong>Key signals</strong><span id="confidence" class="confidence">LIMITED EVIDENCE</span></div>
+      <ul id="reasons" class="reason-list"></ul>
+      <div class="https-note" id="httpsNote"><span>✓</span><span>A secure connection does not prove a site is trustworthy.</span></div>
+      <button id="rescanButton" class="rescan-button">Re-analyze this page</button>
+    </section>
+    <footer class="popup-footer"><span>ANALYZE. VERIFY. SCORE.</span><span>Prototype assessment · not a guarantee</span></footer>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+Return-Path: <secure@example.com>
+Received: from mail.example.com (mail.example.com. [198.51.100.10])
+        by mx.yourdomain.com with ESMTPS id xyz
+        for <receiver@example.com>; Wed, 07 Oct 2026 10:00:00 -0700 (PDT)
+From: Secure User <secure@example.com>
+To: Receiver <receiver@example.com>
+Subject: S/MIME Test Email
+Date: Wed, 07 Oct 2026 10:00:00 -0700
+Message-ID: <smime-test@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/signed; protocol="application/x-pkcs7-signature"; micalg=sha-256; boundary="boundary42"
+
+This is a cryptographically signed message in MIME format.
+
+--boundary42
+Content-Type: text/plain; charset=utf-8
+
+This email has an S/MIME signature attached to it.
+If you upload this to EmailGuard, it will attempt to verify the signature using OpenSSL!
+
+--boundary42
+Content-Type: application/x-pkcs7-signature; name="smime.p7s"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="smime.p7s"
+
+MIAGCSqGSIb3DQEHAqCAMIACAQExDzANBglghkgBZQMEAgEFADCABgkqhkiG9w0BBwEAAKCA
+... fake smime payload ...
+AAAA
+--boundary42--

@@ -1,0 +1,31 @@
+Return-Path: <testuser@gmail.com>
+Received: from mail.google.com (mail.google.com. [74.125.1.1])
+        by mx.yourdomain.com with ESMTPS id abcdef12345
+        for <receiver@example.com>; Wed, 07 Oct 2026 10:00:00 -0700 (PDT)
+From: Test User <testuser@gmail.com>
+To: Receiver <receiver@example.com>
+Subject: Real authentication test with PGP
+Date: Wed, 07 Oct 2026 10:00:00 -0700
+Message-ID: <1234567890@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+This is a test email meant to demonstrate how EmailGuard handles SPF, DMARC, and PGP signatures from an uploaded .eml file.
+
+Because this email pretends to come from a real Google IP address (74.125.1.1) and a gmail.com sender, the SPF check should actually say PASS!
+Because SPF passes and aligns with the From header (gmail.com), DMARC will also PASS.
+Because there is a PGP signature below, the OpenPGP check will run (it will say INVALID because this is a fake signature, but it won't say NOT PRESENT!).
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAEBCgAdFiEE8Ca8Wl6vVsHr3ZuA+bvfUzZuQs8FAmrGV04ACgkQ+bvfUzZu
+Qs9ULAf/VOgjlmBCbfs3D9avK0q95JZvQrP2KiOqM2ZqhvtAyu5LCJoYCwhaz7c0
+LpXMxfbD3gYt9oWOQ3ozhUcfoHFsmdFvgZ3+VAP2DISQXvr7iKfet+KtMn1u+vHZ
+XKu0kWNHE2DoO3NwOmzZtAVR/emmm/llGjHsE9qcAfw079vI6W3X3UZcvad8wQVA
+0ez7TbPW6bnsLCxbx7Z+FsgkGA5Mujg5N4lJ8qR0DRzJ32qKXZ++ZBlxBKj7Rx/n
+xC6tRsvq4yA+NOiuGxppCVGX+BH+Ti7lL8fq+73W1EPWt9UeCcxIa6REbouofOh9
+NIw+EmnWW3SwGtmMHzfyOvdHArx1TQ==
+=nYgC
+-----END PGP SIGNATURE-----

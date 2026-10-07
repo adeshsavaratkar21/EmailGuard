@@ -1,0 +1,17 @@
+From: Operations <ops@example.test>
+To: user@example.test
+Subject: Monthly summary
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="demo-boundary"
+
+--demo-boundary
+Content-Type: text/plain; charset=utf-8
+
+Please review the attached summary.
+--demo-boundary
+Content-Type: application/pdf; name="report.pdf"
+Content-Disposition: attachment; filename="report.pdf"
+Content-Transfer-Encoding: base64
+
+UERGIGRhdGEgZm9yIHRlc3RzLg==
+--demo-boundary--

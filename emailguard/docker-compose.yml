@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: emailguard
+      POSTGRES_USER: emailguard
+      POSTGRES_PASSWORD: emailguard_dev
+    volumes:
+      - emailguard_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U emailguard -d emailguard"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://emailguard:emailguard_dev@db:5432/emailguard
+      EMAILGUARD_MAX_EMAIL_BYTES: 10485760
+      EMAILGUARD_MAX_URLS_PER_EMAIL: 50
+      EMAILGUARD_MAX_ACTIVE_URLS_PER_EMAIL: 3
+      EMAILGUARD_URL_TIMEOUT_SECONDS: 2.5
+      EMAILGUARD_MAX_URL_REDIRECTS: 3
+      EMAILGUARD_ALLOW_ACTIVE_URL_CHECKS: "false"
+      EMAILGUARD_DNS_LOOKUPS: "false"
+      EMAILGUARD_DKIM_DNS_LOOKUPS: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  emailguard_pgdata:
