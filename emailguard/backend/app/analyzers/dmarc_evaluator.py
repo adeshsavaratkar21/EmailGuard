@@ -58,35 +58,80 @@ def _aligned(from_domain: str, auth_domain: str | None, mode: str) -> bool:
 
 
 def _fetch_dmarc_record(domain: str) -> tuple[str | None, str]:
-    """Fetch _dmarc.domain TXT record. Returns (record_text, status)."""
+    """Fetch _dmarc.domain TXT record. Returns (record_text, status).
+
+    A missing record is reported as NO_RECORD, not as an error.  dnspython signals
+    the common "this domain publishes no DMARC policy" case with NXDOMAIN, whose
+    message text does not contain the word "nxdomain" ("The DNS query name does
+    not exist: _dmarc.example.com."), so the exception *types* are matched here
+    instead of the message text.  Previously that case fell through to DNS_ERROR,
+    which the caller then scored as a DMARC failure.
+    """
     if not ENABLE_DNS_LOOKUPS:
         return None, "DNS_LOOKUPS_DISABLED"
     try:
+        import dns.exception  # type: ignore  # dnspython
         import dns.resolver  # type: ignore
-        resolver = dns.resolver.Resolver()
-        resolver.timeout = DMARC_DNS_TIMEOUT
-        resolver.lifetime = DMARC_DNS_TIMEOUT
-        try:
-            answers = resolver.resolve(f"_dmarc.{domain}", "TXT", lifetime=DMARC_DNS_TIMEOUT)
-            records = []
-            for a in answers:
-                txt = b"".join(a.strings).decode("utf-8", errors="replace") if hasattr(a, "strings") else a.to_text().strip('"')
-                if txt.lower().startswith("v=dmarc1"):
-                    records.append(txt)
-            if len(records) == 0:
-                return None, "NO_RECORD"
-            if len(records) > 1:
-                return records[0], "MULTIPLE_RECORDS_FIRST_USED"
-            return records[0], "FOUND"
-        except Exception as exc:
-            msg = str(exc).lower()
-            if "nxdomain" in msg or "no answer" in msg:
-                return None, "NO_RECORD"
-            if "timeout" in msg:
-                return None, "DNS_TIMEOUT"
-            return None, f"DNS_ERROR:{str(exc)[:100]}"
     except ImportError:
         return None, "DNS_LIB_UNAVAILABLE"
+    resolver = dns.resolver.Resolver()
+    resolver.timeout = DMARC_DNS_TIMEOUT
+    resolver.lifetime = DMARC_DNS_TIMEOUT
+    try:
+        answers = resolver.resolve(f"_dmarc.{domain}", "TXT", lifetime=DMARC_DNS_TIMEOUT)
+        records = []
+        for a in answers:
+            txt = b"".join(a.strings).decode("utf-8", errors="replace") if hasattr(a, "strings") else a.to_text().strip('"')
+            if txt.lower().startswith("v=dmarc1"):
+                records.append(txt)
+        if len(records) == 0:
+            return None, "NO_RECORD"
+        if len(records) > 1:
+            return records[0], "MULTIPLE_RECORDS_FIRST_USED"
+        return records[0], "FOUND"
+    except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
+        return None, "NO_RECORD"
+    except dns.exception.Timeout:
+        return None, "DNS_TIMEOUT"
+    except Exception as exc:
+        msg = str(exc).lower()
+        if "nxdomain" in msg or "no answer" in msg or "does not exist" in msg:
+            return None, "NO_RECORD"
+        if "timeout" in msg or "timed out" in msg:
+            return None, "DNS_TIMEOUT"
+        return None, f"DNS_ERROR:{str(exc)[:100]}"
+
+
+def _domain_exists(domain: str | None) -> bool | None:
+    """Best-effort check whether the visible From domain exists in DNS at all.
+
+    Returns True when any mail-relevant record exists, False when the name has no
+    records whatsoever, and None when the answer is inconclusive (lookups disabled,
+    no DNS library, or a timeout).
+    """
+    if not domain or not ENABLE_DNS_LOOKUPS:
+        return None
+    try:
+        import dns.exception  # type: ignore  # dnspython
+        import dns.resolver  # type: ignore
+    except ImportError:
+        return None
+    resolver = dns.resolver.Resolver()
+    resolver.timeout = DMARC_DNS_TIMEOUT
+    resolver.lifetime = DMARC_DNS_TIMEOUT
+    for record_type in ("MX", "A", "AAAA", "NS"):
+        try:
+            resolver.resolve(domain, record_type, lifetime=DMARC_DNS_TIMEOUT)
+            return True
+        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
+            # This record type genuinely does not exist; keep checking the others.
+            continue
+        except Exception:
+            # Timeout, no nameserver reachable, SERVFAIL, no network at all ... the
+            # answer is inconclusive, and "cannot tell" must never be scored as
+            # "the domain does not exist".
+            return None
+    return False
 
 
 def _parse_dmarc_record(record: str) -> dict[str, str | None]:
@@ -143,6 +188,7 @@ def evaluate_dmarc(
             "reported_status": reported_status,
             "verified_status": None,
             "from_domain": None,
+            "from_domain_resolves": None,
             "policy": None,
             "sub_policy": None,
             "adkim": None,
@@ -169,22 +215,16 @@ def evaluate_dmarc(
     else:
         dns_status = dns_status
 
-    tags: dict[str, str | None] = {}
-    if record:
-        tags = _parse_dmarc_record(record)
-
-    policy = tags.get("p")
-    sub_policy = tags.get("sp")
-    adkim = (tags.get("adkim") or "r")[0].lower()  # r=relaxed, s=strict
-    aspf = (tags.get("aspf") or "r")[0].lower()
-
-    if not record and dns_status in ("NO_RECORD", "DNS_LOOKUPS_DISABLED"):
+    if record is None and (dns_status == "DNS_TIMEOUT" or dns_status.startswith("DNS_ERROR")):
+        # The lookup itself failed (timeout, SERVFAIL, no network).  That is not a
+        # DMARC failure and must not be scored as one: DMARC is inconclusive here.
         return {
-            "status": "NO_POLICY" if dns_status == "NO_RECORD" else "CONTEXT_UNAVAILABLE",
+            "status": "DNS_ERROR",
             "verification_type": "unavailable",
             "reported_status": reported_status,
             "verified_status": None,
             "from_domain": from_domain,
+            "from_domain_resolves": None,
             "policy": None,
             "sub_policy": None,
             "adkim": None,
@@ -195,9 +235,53 @@ def evaluate_dmarc(
             "dns_lookup_status": dns_status,
             "org_domain": _get_org_domain(from_domain),
             "explanation": (
-                "No DMARC record found for this domain." if dns_status == "NO_RECORD"
-                else "DNS lookups are disabled; DMARC policy was not retrieved."
+                f"The DMARC policy for {from_domain} could not be retrieved ({dns_status}); "
+                "DMARC is reported as inconclusive rather than failed."
             ),
+        }
+
+    tags: dict[str, str | None] = {}
+    if record:
+        tags = _parse_dmarc_record(record)
+
+    policy = tags.get("p")
+    sub_policy = tags.get("sp")
+    adkim = (tags.get("adkim") or "r")[0].lower()  # r=relaxed, s=strict
+    aspf = (tags.get("aspf") or "r")[0].lower()
+
+    if not record and dns_status in ("NO_RECORD", "DNS_LOOKUPS_DISABLED"):
+        # No policy published is NOT a DMARC failure.  When the DNS answer says the
+        # record does not exist, also check whether the visible From domain itself
+        # exists: a domain with no records at all cannot send or receive mail and is
+        # a separate risk signal (scored by the risk engine, not here).
+        from_domain_resolves = _domain_exists(from_domain) if dns_status == "NO_RECORD" else None
+        explanation = (
+            "No DMARC record found for this domain."
+            if dns_status == "NO_RECORD"
+            else "DNS lookups are disabled; DMARC policy was not retrieved."
+        )
+        if from_domain_resolves is False:
+            explanation += (
+                " The visible From domain does not resolve to any MX, A, AAAA or NS record,"
+                " so it cannot authorise or receive mail; this is reported separately as a risk signal."
+            )
+        return {
+            "status": "NO_POLICY" if dns_status == "NO_RECORD" else "CONTEXT_UNAVAILABLE",
+            "verification_type": "unavailable",
+            "reported_status": reported_status,
+            "verified_status": None,
+            "from_domain": from_domain,
+            "from_domain_resolves": from_domain_resolves,
+            "policy": None,
+            "sub_policy": None,
+            "adkim": None,
+            "aspf": None,
+            "spf_aligned": None,
+            "dkim_aligned": None,
+            "dns_record": None,
+            "dns_lookup_status": dns_status,
+            "org_domain": _get_org_domain(from_domain),
+            "explanation": explanation,
         }
 
     # Determine SPF domain and pass status
@@ -284,6 +368,9 @@ def evaluate_dmarc(
         "reported_status": reported_status,
         "verified_status": verified_status,
         "from_domain": from_domain,
+        # Reaching this branch means a DMARC record was retrieved from DNS, so the
+        # visible From domain demonstrably exists.
+        "from_domain_resolves": True,
         "policy": policy,
         "sub_policy": sub_policy,
         "adkim": adkim,

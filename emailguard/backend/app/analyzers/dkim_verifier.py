@@ -32,6 +32,57 @@ from app.config import ENABLE_DKIM_DNS_LOOKUPS as ENABLE_DKIM_VERIFICATION
 _SIG_FIELD_RE = re.compile(r"(?:^|;)\s*([a-z]+)\s*=\s*([^;]+)", re.IGNORECASE)
 
 
+class _DkimKeyUnavailable(Exception):
+    """The DKIM public key could not be retrieved from DNS.
+
+    dkimpy reports a missing key and a wrong signature with the same ``False``
+    return value, so the key lookup is performed here instead and a failed lookup
+    raises this exception.  "Key could not be fetched" is NOT "signature is bad"
+    and must never be scored as a forgery.
+    """
+
+
+def _fetch_dkim_key_record(name: str | bytes, timeout: float | None = None) -> bytes:
+    """Fetch the TXT record for ``<selector>._domainkey.<domain>`` from DNS.
+
+    dkimpy calls its DNS hook with a *bytes* name, so both bytes and str are
+    accepted.  Returns the raw record bytes; raises :class:`_DkimKeyUnavailable`
+    when the record does not exist or DNS cannot be reached.
+    """
+    if isinstance(name, bytes):
+        name = name.decode("ascii", errors="replace")
+    try:
+        import dns.resolver  # type: ignore  # dnspython
+    except ImportError as exc:  # pragma: no cover - dependency is in requirements.txt
+        raise _DkimKeyUnavailable("dnspython is not installed; cannot fetch the DKIM public key") from exc
+
+    timeout = DKIM_DNS_TIMEOUT if timeout is None else timeout
+    try:
+        resolver = dns.resolver.Resolver()
+        resolver.timeout = timeout
+        resolver.lifetime = timeout
+        answers = resolver.resolve(name, "TXT", lifetime=timeout)
+    except Exception as exc:
+        message = str(exc)
+        lowered = message.lower()
+        if "timeout" in lowered or "timed out" in lowered:
+            reason = f"DNS lookup for {name} timed out"
+        elif "nxdomain" in lowered or "does not exist" in lowered or "no answer" in lowered:
+            reason = f"no DKIM public key is published at {name}"
+        else:
+            reason = f"DNS lookup for {name} failed ({message[:120]})"
+        raise _DkimKeyUnavailable(reason) from exc
+
+    for answer in answers:
+        try:
+            value = b"".join(answer.strings) if hasattr(answer, "strings") else answer.to_text().strip('"').encode("utf-8")
+        except Exception:
+            continue
+        if b"p=" in value or value.lower().startswith(b"v=dkim1"):
+            return value
+    raise _DkimKeyUnavailable(f"no DKIM public key is published at {name}")
+
+
 def _parse_dkim_sig_fields(sig_header: str) -> dict[str, str]:
     """Extract tag=value pairs from a DKIM-Signature header."""
     return {
@@ -147,14 +198,23 @@ def verify_dkim(raw: bytes, parsed: dict) -> dict[str, Any]:
         }
         try:
             # dkimpy: verify() tests ALL signatures; for per-sig we use the index
-            # dkimpy >= 1.0 supports dnsfunc; we rely on live DNS here
+            # The DNS hook is our own so a missing/unreachable key is distinguishable
+            # from a signature that simply does not verify.
             d_obj = dkim.DKIM(raw, logger=None)
+            dns_cache: dict[str, bytes] = {}
+
+            def _dnsfunc(name: bytes, timeout: float = DKIM_DNS_TIMEOUT) -> bytes:
+                cache_key = name.decode("ascii", errors="replace") if isinstance(name, bytes) else str(name)
+                if cache_key not in dns_cache:
+                    dns_cache[cache_key] = _fetch_dkim_key_record(name, timeout)
+                return dns_cache[cache_key]
+
             # try verify with signature index if supported
             try:
-                ok = d_obj.verify(idx=i)
+                ok = d_obj.verify(idx=i, dnsfunc=_dnsfunc)
             except TypeError:
                 # Older dkimpy doesn't have idx; fall back to verify() for first sig
-                ok = bool(dkim.verify(raw)) if i == 0 else None
+                ok = bool(dkim.verify(raw, dnsfunc=_dnsfunc)) if i == 0 else None
 
             if ok is None:
                 result_entry["verified_status"] = "VERIFICATION_ERROR"
@@ -169,6 +229,13 @@ def verify_dkim(raw: bytes, parsed: dict) -> dict[str, Any]:
                     "The message body or headers may have been modified after signing, "
                     "or the DNS key does not match the signature."
                 )
+        except _DkimKeyUnavailable as exc:
+            result_entry["verified_status"] = "KEY_UNAVAILABLE"
+            result_entry["explanation"] = (
+                f"The DKIM public key for d={d} s={s} could not be retrieved: {exc}. "
+                "The signature could not be checked at all, so this is reported as "
+                "key-unavailable and is NOT treated as an invalid signature."
+            )
         except dkim.ValidationError as exc:
             result_entry["verified_status"] = "FAIL"
             result_entry["explanation"] = f"DKIM validation error for d={d} s={s}: {str(exc)[:200]}"

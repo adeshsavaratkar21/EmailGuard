@@ -11,8 +11,8 @@ EmailGuard is a multi-layer email and web security analyzer. It parses `.eml` fi
 - **React + TypeScript + Vite dashboard:** Tailwind CSS utilities, Recharts activity graph, responsive overview, `.eml` analysis, URL scanner, history, detailed reports, scoring factors, and methodology.
 - **FastAPI backend:** Upload and URL-analysis APIs, health, history, dashboard stats, and full report retrieval.
 - **Email parsing:** From/To/Reply-To/Return-Path, subject, date, message ID, Received and Authentication-Results headers, MIME/body metadata, HTML anchors, URLs, and attachment metadata. Attachments are never opened or executed.
-- **Authentication evidence:** Receiver-reported SPF/DKIM/DMARC results are surfaced. Optional `dkimpy` verification and optional SPF/DMARC DNS policy lookups can be enabled. The analyzer does not claim a fresh SPF check when an untrusted `.eml` has no verified SMTP peer IP.
-- **Cryptography:** SHA-256 and SHA-512 digests over decoded message text; DKIM, S/MIME and PGP/OpenPGP presence indicators; optional DKIM verification. Hashes are integrity identifiers, not sender authentication.
+- **Authentication evidence:** Receiver-reported SPF/DKIM/DMARC results are surfaced. Optional `dkimpy` verification and optional SPF/DMARC DNS policy lookups can be enabled. The analyzer does not claim a fresh SPF check when an untrusted `.eml` has no verified SMTP peer IP. Statuses keep *"cannot verify"* separate from *"failed"*: an unfetchable DKIM key is `KEY_UNAVAILABLE`, a domain with no DMARC record is `NO_POLICY`, and a DNS lookup that errors is `DNS_ERROR` — none of them is scored as a failure.
+- **Cryptography:** SHA-256 and SHA-512 digests over decoded message text; DKIM, S/MIME and PGP/OpenPGP presence indicators; optional DKIM verification. S/MIME signatures are verified with OpenSSL CMS — signature validity and certificate-chain trust are reported separately, and the signer certificate's subject, issuer and validity window are included in the report. Hashes are integrity identifiers, not sender authentication.
 - **URL/domain checks:** HTTP(S) parsing, IP literals, IDN/punycode, known-brand look-alikes, sensitive-looking terms, subdomain depth, percent encoding, and unusual ports.
 - **Optional active checks:** A bounded public-endpoint `HEAD` probe can inspect redirects and TLS/X.509 data. It is disabled by default and refuses private/reserved IPs, embedded URL credentials, non-standard ports, long timeouts and unbounded redirects.
 - **Explainable scoring:** Configurable rules, individual score contributions, reasons, thresholds and recommended action.
@@ -110,9 +110,19 @@ The interface displays **Safety Score = 100 − Risk Score**. Higher Safety Scor
 | Suspicious redirect | +20 |
 | TLS validation issue / hostname mismatch | +15 / +25 |
 | IP-based URL / private-network target / sensitive-looking URL terms | +10 / +15 / +6 |
+| Visible From domain has no DNS records at all | +10 |
 | SPF pass / DKIM pass / DMARC pass | −5 / −5 / −10 |
 | Valid TLS | −2 |
 | Passive-only or limited evidence | +8 |
+
+**"Cannot verify" is never scored as "failed."** An unfetchable DKIM key (`KEY_UNAVAILABLE`), an
+S/MIME or PGP signature whose trust cannot be established (`CERT_UNTRUSTED`, `PASS_SIG_ONLY`,
+`GPG_UNAVAILABLE`, `KEY_UNAVAILABLE`), a domain that publishes no DMARC policy (`NO_POLICY`), a
+failed DNS lookup (`DNS_ERROR`), or missing transport context (`CONTEXT_UNAVAILABLE`) all contribute
+**0** risk. Only positive evidence of a problem — a signature that does not match (`+25`), a real
+SPF/DKIM/DMARC failure, phishing URL patterns — adds risk. `sender_domain_unresolvable` is separate
+from DMARC: it fires only when the visible From domain has no MX, A, AAAA or NS records, which
+indicates a forged sender rather than a merely unconfigured domain.
 
 Signals combine and the risk score is clamped to 0–100. Classification thresholds default to **80–100 Safety = SAFE / ALLOW**, **50–79 = SUSPICIOUS / WARN**, **0–49 = MALICIOUS / QUARANTINE**. Override them with `EMAILGUARD_SAFE_THRESHOLD` and `EMAILGUARD_SUSPICIOUS_THRESHOLD`. Environment variable `EMAILGUARD_SCORING_WEIGHTS` accepts JSON weight overrides, for example:
 
@@ -147,10 +157,10 @@ The following checks run automatically with no extra configuration when you uplo
 
 | Check | What happens | Requirement |
 |---|---|---|
-| **DKIM** | Signatures in the email are cryptographically verified against the sender's public DNS key | `dkimpy` installed (in requirements.txt) |
-| **DMARC** | Alignment is computed from DKIM/SPF results + the sender's DNS DMARC policy | `dnspython` + `publicsuffix2` installed (in requirements.txt) |
-| **S/MIME** | Cryptographic signature is verified; certificate chain is checked against the `certifi` CA bundle | `openssl` on system PATH |
-| **PGP** | Signature is detected; verified if trusted keys are configured (see below) | `gpg` on system PATH |
+| **DKIM** | Signatures in the email are cryptographically verified against the sender's public DNS key (the key lookup is performed by EmailGuard, so an unpublished selector is reported as `KEY_UNAVAILABLE`, not as a failed signature) | `dkimpy` + `dnspython` installed (in requirements.txt) |
+| **DMARC** | Alignment is computed from DKIM/SPF results + the sender's DNS DMARC policy; a domain with no policy is `NO_POLICY` (no penalty) and a failed lookup is `DNS_ERROR` | `dnspython` + `publicsuffix2` installed (in requirements.txt) |
+| **S/MIME** | Cryptographic signature is verified; certificate chain is checked against the `certifi` CA bundle; signer certificate subject/issuer/validity are reported. Signature validity and chain trust are reported separately (`PASS`, `PASS_SIG_ONLY`, `CERT_UNTRUSTED`, `SIGNATURE_INVALID`) | `openssl` on system PATH |
+| **PGP** | Signature is detected; verified if trusted keys are configured (see below). `gpg` missing → `GPG_UNAVAILABLE`, key not in the keyring → `KEY_UNAVAILABLE`; neither is scored as a failure | `gpg` on system PATH |
 
 ### SPF (requires extra context)
 
@@ -187,6 +197,10 @@ pytest -q
 ```
 
 Synthetic inputs are in `tests/fixtures/`; no real people's emails are included. To print a small confusion matrix, malicious-detection rate, false-positive rate and mean analysis time, run `python evaluate_dataset.py` from `backend/`. These metrics use a tiny illustrative corpus and are not a benchmark.
+
+`tests/test_crypto_signatures.py` generates a throw-away RSA key pair and a **real** CMS signature with `openssl` and runs the actual S/MIME verifier, so the signed-data path (a previously broken code path) is exercised end to end rather than mocked. Those tests skip automatically when `openssl` is not on PATH.
+
+A larger set of ready-to-upload demo messages, with the measured result of every check, is in `../demo_emails/` together with `../demo_emails/DEMO_GUIDE.md`.
 
 ## CNS syllabus connections
 

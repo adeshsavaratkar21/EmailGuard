@@ -43,6 +43,9 @@ DEFAULT_WEIGHTS: dict[str, int] = {
     "spf_softfail": 7,
     "dkim_fail": 15,
     "dmarc_fail": 20,
+    # The visible From domain has no MX/A/AAAA/NS records at all. Distinct from
+    # "no DMARC policy published", which is informational and carries no weight.
+    "sender_domain_unresolvable": 10,
     "invalid_signature": 25,
     "suspicious_url": 20,
     "lookalike_domain": 25,

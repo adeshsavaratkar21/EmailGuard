@@ -1,0 +1,56 @@
+Return-Path: <alerts@icicibank-secure-login.example>
+From: ICICI Bank Alerts <alerts@icicibank-secure-login.example>
+To: Student Demo <student.demo@campus-college.edu>
+Subject: Your account statement is ready - verify now
+Date: Sat, 10 Oct 2026 17:12:00 +0530
+Message-ID: <signed-phish-20261010-17@icicibank-secure-login.example>
+MIME-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pkcs7-signature"; micalg=sha-256; boundary="smime-bound"
+
+--smime-bound
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+Dear customer, your account statement is ready.
+Verify your identity to download it: https://icicibank-secure-login.example/verify
+UPDATED BY THE ATTACKER AFTER THE SIGNATURE WAS CREATED.
+--smime-bound
+Content-Type: application/pkcs7-signature; name="smime.p7s"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="smime.p7s"
+
+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
+UIi2h10oPU4Kb8qygn1nsM6LfxZTwyCf0dE=
+--smime-bound--

@@ -121,10 +121,16 @@ def _extract_smime_parts(raw: bytes, parsed: dict) -> tuple[str, bytes | None, b
 
 
 def _parse_openssl_cert_info(output: str) -> dict[str, Any]:
-    """Extract basic certificate details from openssl output text."""
+    """Extract basic certificate details from openssl output text.
+
+    ``openssl x509 -text`` prints ``Subject:`` / ``Issuer:`` (capitalised, colon),
+    while ``-nameopt RFC2253`` uses ``subject=`` / ``issuer=``.  The earlier
+    patterns only accepted the latter form, so the signer certificate details were
+    never populated in the report.  Both forms are accepted now.
+    """
     info: dict[str, Any] = {}
-    subject_m = re.search(r"subject=(.+)", output)
-    issuer_m = re.search(r"issuer=(.+)", output)
+    subject_m = re.search(r"(?im)^\s*subject[=:]\s*(.+?)\s*$", output)
+    issuer_m = re.search(r"(?im)^\s*issuer[=:]\s*(.+?)\s*$", output)
     not_before = re.search(r"Not Before\s*:\s*(.+)", output)
     not_after = re.search(r"Not After\s*:\s*(.+)", output)
     if subject_m:
@@ -221,34 +227,28 @@ def verify_smime(raw: bytes, parsed: dict) -> dict[str, Any]:
             with open(content_file, "wb") as f:
                 f.write(content_bytes)
 
-        # Build openssl cms verify command
+        # Build ONE base openssl cms verify command and derive both variants from it:
+        #   crypto_cmd  - signature validity only, without judging certificate trust (-noverify)
+        #   trusted_cmd - full chain validation against the configured CA bundle (-CAfile)
+        #
+        # Regression note: the two variants used to be built as one command and then
+        # mutated, deleting the CA bundle path and its "-CAfile" flag with two
+        # successive list.pop() calls at the same index.  Because the bundle path was
+        # always the final argument, the second pop raised IndexError
+        # ("pop index out of range") and EVERY signed S/MIME message was reported as
+        # VERIFIER_ERROR.  Building the variants independently removes that failure mode.
         if form == "multipart_signed" and sig_bytes and content_bytes:
-            # Detached signature
-            cmd = ["cms", "-verify", "-in", sig_file, "-inform", "DER",
-                   "-content", content_file, "-out", out_file,
-                   "-signer", cert_file, "-noverify"]
-            if CA_BUNDLE:
-                cmd = ["cms", "-verify", "-in", sig_file, "-inform", "DER",
-                       "-content", content_file, "-out", out_file,
-                       "-signer", cert_file, "-CAfile", CA_BUNDLE]
+            # Detached signature: the signed content is supplied separately
+            base_cmd = ["cms", "-verify", "-in", sig_file, "-inform", "DER",
+                        "-content", content_file, "-out", out_file,
+                        "-signer", cert_file]
         else:
-            # Opaque signed - sig_bytes contains full CMS
-            if sig_bytes:
-                with open(sig_file, "wb") as f:
-                    f.write(sig_bytes)
-            cmd = ["cms", "-verify", "-in", sig_file, "-inform", "DER",
-                   "-out", out_file, "-signer", cert_file, "-noverify"]
-            if CA_BUNDLE:
-                cmd = ["cms", "-verify", "-in", sig_file, "-inform", "DER",
-                       "-out", out_file, "-signer", cert_file, "-CAfile", CA_BUNDLE]
+            # Opaque signed - sig_bytes contains the full CMS structure
+            base_cmd = ["cms", "-verify", "-in", sig_file, "-inform", "DER",
+                        "-out", out_file, "-signer", cert_file]
 
         # Step 1: Verify signature WITHOUT trust chain (cryptographic only)
-        crypto_cmd = [a for a in cmd if a != CA_BUNDLE]
-        if "-CAfile" in crypto_cmd:
-            i = crypto_cmd.index("-CAfile")
-            crypto_cmd.pop(i); crypto_cmd.pop(i)
-        if "-noverify" not in crypto_cmd:
-            crypto_cmd.append("-noverify")
+        crypto_cmd = base_cmd + ["-noverify"]
         rc_crypto, out_crypto, err_crypto = _run_openssl(crypto_cmd)
         signature_valid = rc_crypto == 0
 
@@ -265,9 +265,7 @@ def verify_smime(raw: bytes, parsed: dict) -> dict[str, Any]:
         cert_trusted: bool | None = None
         trust_explanation = "Certificate chain trust was not checked (no CA bundle configured)."
         if CA_BUNDLE and os.path.exists(CA_BUNDLE):
-            trusted_cmd = [a for a in cmd]
-            if "-noverify" in trusted_cmd:
-                trusted_cmd.remove("-noverify")
+            trusted_cmd = base_cmd + ["-CAfile", CA_BUNDLE]
             rc_trust, out_trust, err_trust = _run_openssl(trusted_cmd)
             cert_trusted = rc_trust == 0
             if cert_trusted:
