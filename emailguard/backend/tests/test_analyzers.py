@@ -4,7 +4,7 @@ import pytest
 
 from app.analyzers.email_parser import parse_eml
 from app.analyzers.url_analyzer import _safe_resolve, analyze_url
-from app.risk.engine import _decision, assess_url
+from app.risk.engine import _decision, assess_email, assess_url
 from app.service import analyze_email_bytes, analyze_single_url
 
 FIXTURES = Path(__file__).resolve().parents[2] / "tests" / "fixtures"
@@ -92,7 +92,10 @@ def test_synthetic_uncertain_email_scores_as_suspicious():
     raw = (FIXTURES / "suspicious_but_uncertain.eml").read_bytes()
     report = analyze_email_bytes(raw, "suspicious_but_uncertain.eml")
     assert report["classification"] == "SUSPICIOUS"
-    assert report["safety_score"] == 56
+    # URL signals (keyword 6 + insecure http 5 + encoded 5 + non-standard port 8),
+    # an unresolvable sender domain (+10) and the limited-evidence penalty (+8).
+    # Publishing no DMARC record is NOT scored as a DMARC failure.
+    assert report["safety_score"] == 58
 
 
 def test_email_report_omits_body_and_includes_digest():
@@ -102,6 +105,41 @@ def test_email_report_omits_body_and_includes_digest():
     assert len(report["cryptography"]["hashes"]["sha256"]) == 64
     assert report["email"]["urls_found"] == 1
     assert "not statistically validated" in report["model_note"].lower()
+
+
+def test_unresolvable_sender_domain_is_scored_once_and_is_not_a_dmarc_failure():
+    auth = {
+        "spf": {"status": "CONTEXT_UNAVAILABLE", "verification_type": "unavailable", "verified_status": None},
+        "dkim": {"verified_status": "NOT_PRESENT", "verification_type": "unavailable",
+                 "signature_present": False, "signatures": []},
+        "dmarc": {"status": "NO_POLICY", "verification_type": "unavailable", "verified_status": None,
+                  "from_domain": "made-up.invalid", "from_domain_resolves": False},
+        "smime": {"status": "NOT_PRESENT"},
+        "pgp": {"status": "NOT_PRESENT"},
+    }
+    assessment = assess_email(auth, {"sender": "billing@made-up.invalid", "reply_to_address": ""}, [], {})
+    codes = [factor["code"] for factor in assessment["factors"]]
+    assert codes.count("sender_domain_unresolvable") == 1
+    assert next(f for f in assessment["factors"] if f["code"] == "sender_domain_unresolvable")["contribution"] == 10
+    # The absence of a DMARC record must not be presented as a DMARC failure.
+    assert "dmarc_fail" not in codes
+
+
+def test_resolving_sender_domain_without_dmarc_policy_is_not_penalised():
+    auth = {
+        "spf": {"status": "PASS", "verification_type": "independent", "verified_status": "PASS"},
+        "dkim": {"verified_status": "NOT_PRESENT", "verification_type": "unavailable",
+                 "signature_present": False, "signatures": []},
+        "dmarc": {"status": "NO_POLICY", "verification_type": "unavailable", "verified_status": None,
+                  "from_domain": "small-org.example", "from_domain_resolves": True},
+        "smime": {"status": "NOT_PRESENT"},
+        "pgp": {"status": "NOT_PRESENT"},
+    }
+    assessment = assess_email(auth, {"sender": "person@small-org.example", "reply_to_address": ""}, [], {})
+    codes = [factor["code"] for factor in assessment["factors"]]
+    assert "sender_domain_unresolvable" not in codes
+    assert "dmarc_fail" not in codes
+    assert assessment["classification"] == "SAFE"
 
 
 def test_url_report_has_passive_limitations():

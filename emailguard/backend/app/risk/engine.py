@@ -82,8 +82,24 @@ def assess_email(auth: dict, email: dict, urls: list[dict], crypto: dict) -> dic
             code, title, desc, severity = spec
             factors.append(_factor(code, title, desc, severity))
 
+    # A visible From domain with no DNS records at all cannot send or receive mail.
+    # This is separate from "no DMARC policy published", which carries no weight:
+    # absence of a policy is not a failure, but a domain that does not exist is a
+    # genuine anomaly frequently seen in forged senders.
+    dmarc_info = auth.get("dmarc", {})
+    if dmarc_info.get("from_domain_resolves") is False:
+        factors.append(_factor(
+            "sender_domain_unresolvable",
+            "Sender domain does not exist",
+            f"The visible From domain ({dmarc_info.get('from_domain') or 'unknown'}) has no MX, A, AAAA or NS "
+            "records, so it cannot authorise or receive mail; forged senders often use domains that do not exist.",
+            "medium",
+        ))
+
     # S/MIME and PGP: only penalize cryptographically INVALID signatures.
-    # Absence of S/MIME/PGP is NOT a risk factor.
+    # Absence of S/MIME/PGP is NOT a risk factor.  "Could not verify"
+    # (KEY_UNAVAILABLE, GPG_UNAVAILABLE, OPENSSL_UNAVAILABLE, NO_POLICY) is also
+    # deliberately scored as zero and never presented as a failure.
     smime_info = auth.get("smime", {})
     smime_status = smime_info.get("status", "NOT_PRESENT")
     if smime_status == "SIGNATURE_INVALID":

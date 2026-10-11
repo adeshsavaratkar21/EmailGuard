@@ -1,0 +1,60 @@
+Return-Path: <priya.sharma.demo@gmail.com>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+	by mx.campus-college.edu (Postfix) with ESMTPS id 4A1B2C3D16
+	for <student.demo@campus-college.edu>; Sat, 10 Oct 2026 16:50:00 +0530 (IST)
+Authentication-Results: mx.campus-college.edu; spf=pass smtp.mailfrom=gmail.com;
+	dkim=pass header.d=gmail.com header.s=20230601; dmarc=pass header.from=gmail.com
+From: Priya Sharma <priya.sharma.demo@gmail.com>
+To: Student Demo <student.demo@campus-college.edu>
+Subject: Signed marksheet (S/MIME, self-signed demo certificate)
+Date: Sat, 10 Oct 2026 17:05:00 +0530
+Message-ID: <CAF7x1q9demo016@gmail.com>
+MIME-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pkcs7-signature"; micalg=sha-256; boundary="smime-bound"
+
+--smime-bound
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+This message carries a REAL S/MIME signature, created with a demo certificate that is not issued by a public CA.
+EmailGuard reports the signature as cryptographically valid and the certificate chain as untrusted (CERT_UNTRUSTED): a valid signature from an untrusted certificate is not proof of the sender's identity.
+--smime-bound
+Content-Type: application/pkcs7-signature; name="smime.p7s"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="smime.p7s"
+
+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
+X1MY6qcEAC17vFRIzriQ1XAXUl5dVodEd0Y=
+--smime-bound--

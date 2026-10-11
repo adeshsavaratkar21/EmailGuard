@@ -193,6 +193,83 @@ class TestDKIMVerifier:
         # These must be in different fields
         assert result["reported_status"] != result["verified_status"]
 
+    def test_missing_public_key_is_key_unavailable_not_fail(self, monkeypatch):
+        """SYNTHETIC: an unpublished selector is KEY_UNAVAILABLE, never FAIL.
+
+        dkimpy signals both "key could not be fetched" and "signature is wrong" with
+        False, so the key lookup is performed by EmailGuard and reported separately.
+        """
+        from app.analyzers import dkim_verifier
+
+        raw = _make_eml(
+            "DKIM-Signature: v=1; a=rsa-sha256; d=example.com; s=retired-selector;\r\n"
+            " bh=YWJj; h=from:to:subject; b=c2lnbmF0dXJl\r\n"
+        )
+        parsed = parse_eml(raw)
+
+        def _missing(name, timeout=None):
+            raise dkim_verifier._DkimKeyUnavailable(f"no DKIM public key is published at {name}")
+
+        monkeypatch.setattr(dkim_verifier, "_fetch_dkim_key_record", _missing)
+        result = verify_dkim(raw, parsed)
+        assert result["verified_status"] == "KEY_UNAVAILABLE"
+        assert result["signatures"][0]["verified_status"] == "KEY_UNAVAILABLE"
+        assert "could not be retrieved" in result["signatures"][0]["explanation"]
+        # A key that cannot be fetched must never be scored as an invalid signature.
+        assert result["verified_status"] != "FAIL"
+
+    def test_genuine_signature_is_independently_verified_as_pass(self, monkeypatch):
+        """SYNTHETIC: a matching private key produces a real PASS.
+
+        Proves the PASS path works: the key is injected as the DNS record, exactly
+        as dkimpy would receive it from a live lookup.
+        """
+        import base64 as base64_module
+
+        import dkim as dkimpy_lib
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+
+        from app.analyzers import dkim_verifier
+
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        private_pem = key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption(),
+        )
+        public_der = key.public_key().public_bytes(
+            serialization.Encoding.DER,
+            serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        dns_record = b"v=DKIM1; k=rsa; p=" + base64_module.b64encode(public_der)
+
+        message = (
+            b"From: demo@example.test\r\n"
+            b"To: rcpt@example.test\r\n"
+            b"Subject: genuinely signed\r\n"
+            b"Date: Mon, 6 Oct 2026 10:00:00 +0000\r\n"
+            b"Message-ID: <signed-1@example.test>\r\n"
+            b"MIME-Version: 1.0\r\n"
+            b"Content-Type: text/plain; charset=utf-8\r\n"
+            b"\r\n"
+            b"hello\r\n"
+        )
+        signed = dkimpy_lib.sign(
+            message,
+            selector=b"sel",
+            domain=b"example.test",
+            privkey=private_pem,
+            canonicalize=(b"relaxed", b"relaxed"),
+        ) + message
+
+        monkeypatch.setattr(dkim_verifier, "_fetch_dkim_key_record", lambda name, timeout=None: dns_record)
+        result = verify_dkim(signed, parse_eml(signed))
+        assert result["verified_status"] == "PASS"
+        assert result["verification_type"] == "independent"
+        assert result["signatures"][0]["domain"] == "example.test"
+        assert result["signatures"][0]["selector"] == "sel"
+
     def test_key_unavailable_is_not_fail(self, monkeypatch):
         """SYNTHETIC: DNS error fetching DKIM key → KEY_UNAVAILABLE, not FAIL."""
         raw = _make_eml(
@@ -272,6 +349,51 @@ class TestDMARCAlignment:
             result = evaluate_dmarc("example.com", spf_r, dkim_r)
         assert result["status"] == "NO_POLICY"
 
+    def test_dmarc_no_record_is_not_a_dmarc_failure(self):
+        """SYNTHETIC: a domain that publishes no DMARC policy is NO_POLICY, not FAIL.
+
+        dnspython reports this very common case as NXDOMAIN ("the DNS query name does
+        not exist"), which previously fell through to DNS_ERROR and was scored as a
+        DMARC failure.
+        """
+        spf_r = {"status": "CONTEXT_UNAVAILABLE", "verification_type": "unavailable",
+                 "verified_status": None, "evidence": None}
+        dkim_r = {"verified_status": "NOT_PRESENT", "verification_type": "unavailable",
+                  "signatures": [], "signature_present": False}
+        with patch("app.analyzers.dmarc_evaluator._fetch_dmarc_record", return_value=(None, "NO_RECORD")), \
+             patch("app.analyzers.dmarc_evaluator._domain_exists", return_value=True):
+            result = evaluate_dmarc("small-org.example", spf_r, dkim_r)
+        assert result["status"] == "NO_POLICY"
+        assert result["verified_status"] is None
+        assert result["from_domain_resolves"] is True
+        assert result["dns_lookup_status"] == "NO_RECORD"
+
+    def test_dmarc_dns_failure_is_inconclusive_not_failed(self):
+        """SYNTHETIC: a lookup that fails (timeout / SERVFAIL) is not a DMARC failure."""
+        spf_r = {"status": "CONTEXT_UNAVAILABLE", "verification_type": "unavailable",
+                 "verified_status": None, "evidence": None}
+        dkim_r = {"verified_status": "NOT_PRESENT", "verification_type": "unavailable",
+                  "signatures": [], "signature_present": False}
+        with patch("app.analyzers.dmarc_evaluator._fetch_dmarc_record", return_value=(None, "DNS_TIMEOUT")):
+            result = evaluate_dmarc("example.com", spf_r, dkim_r)
+        assert result["status"] == "DNS_ERROR"
+        assert result["verified_status"] is None
+        assert result["spf_aligned"] is None and result["dkim_aligned"] is None
+        assert "inconclusive" in result["explanation"]
+
+    def test_dmarc_unresolvable_sender_domain_is_flagged_separately(self):
+        """SYNTHETIC: a From domain with no DNS records is reported, but DMARC is still NO_POLICY."""
+        spf_r = {"status": "CONTEXT_UNAVAILABLE", "verification_type": "unavailable",
+                 "verified_status": None, "evidence": None}
+        dkim_r = {"verified_status": "NOT_PRESENT", "verification_type": "unavailable",
+                  "signatures": [], "signature_present": False}
+        with patch("app.analyzers.dmarc_evaluator._fetch_dmarc_record", return_value=(None, "NO_RECORD")), \
+             patch("app.analyzers.dmarc_evaluator._domain_exists", return_value=False):
+            result = evaluate_dmarc("does-not-exist.invalid", spf_r, dkim_r)
+        assert result["status"] == "NO_POLICY"
+        assert result["from_domain_resolves"] is False
+        assert "does not resolve" in result["explanation"]
+
     def test_dmarc_pass_via_aligned_dkim(self):
         """SYNTHETIC: DMARC PASS when DKIM d= is aligned with From domain."""
         spf_r = {"status": "CONTEXT_UNAVAILABLE", "verification_type": "unavailable",
@@ -339,6 +461,81 @@ class TestSMIMEVerifier:
         result = verify_smime(raw, parsed)
         assert result["status"] == "ENCRYPTED_NOT_DECRYPTED"
         assert result["signature_valid"] is None
+
+    def test_signed_message_reaches_a_verdict_when_ca_bundle_is_configured(self, monkeypatch, tmp_path):
+        """REGRESSION: a configured CA bundle must not crash the signed-data path.
+
+        The signature-only command used to delete the CA bundle path and its
+        "-CAfile" flag with two pops at the same index.  Because the path was the
+        last argument, the second pop raised IndexError ("pop index out of range")
+        and every signed S/MIME message was reported as VERIFIER_ERROR instead of a
+        real verdict.
+        """
+        raw = (
+            b"From: sender@example.com\r\n"
+            b"To: rcpt@example.com\r\n"
+            b"Subject: Signed\r\n"
+            b"MIME-Version: 1.0\r\n"
+            b"Content-Type: multipart/signed; protocol=\"application/pkcs7-signature\"; boundary=bound\r\n"
+            b"\r\n"
+            b"--bound\r\n"
+            b"Content-Type: text/plain\r\n"
+            b"\r\nHello\r\n"
+            b"--bound\r\n"
+            b"Content-Type: application/pkcs7-signature; name=smime.p7s\r\n"
+            b"\r\nZmFrZXNpZw==\r\n"
+            b"--bound--\r\n"
+        )
+        parsed = parse_eml(raw)
+        fake_bundle = tmp_path / "ca.pem"
+        fake_bundle.write_bytes(b"-----BEGIN CERTIFICATE-----\n")
+        calls: list[list[str]] = []
+
+        def fake_openssl(args, input_data=None, timeout=10):
+            calls.append(list(args))
+            if args and args[0] == "x509":
+                return 0, b"subject=CN=Demo\r\nissuer=CN=Demo\r\n", b""
+            return 0, b"", b""
+
+        with patch("app.analyzers.smime_verifier.CA_BUNDLE", str(fake_bundle)), \
+             patch("app.analyzers.smime_verifier._openssl_available", return_value=True), \
+             patch("app.analyzers.smime_verifier._run_openssl", fake_openssl):
+            result = verify_smime(raw, parsed)
+
+        assert "pop index out of range" not in (result["explanation"] or "")
+        assert result["status"] == "PASS"
+        assert result["signature_valid"] is True
+        cms_calls = [call for call in calls if call and call[0] == "cms"]
+        assert len(cms_calls) == 2, "expected one signature-only call and one chain-trust call"
+        signature_call, trust_call = cms_calls
+        assert "-noverify" in signature_call and "-CAfile" not in signature_call
+        assert "-CAfile" in trust_call and str(fake_bundle) in trust_call
+
+    def test_signer_certificate_details_are_parsed_from_openssl_output(self):
+        """REGRESSION: signer certificate fields must be extracted, not silently dropped.
+
+        ``openssl x509 -text`` prints "Subject:" / "Issuer:" (capitalised, colon),
+        while only "subject=" / "issuer=" was accepted, so the report never showed
+        the signer certificate at all.
+        """
+        from app.analyzers.smime_verifier import _parse_openssl_cert_info
+
+        sample = (
+            "Certificate:\n"
+            "        Issuer: OU=Teaching Sample,O=EmailGuard Demo,CN=EmailGuard Demo Signer\n"
+            "        Validity\n"
+            "            Not Before: Oct 11 10:49:43 2026 GMT\n"
+            "            Not After : Oct  8 10:49:43 2036 GMT\n"
+            "        Subject: OU=Teaching Sample,O=EmailGuard Demo,CN=EmailGuard Demo Signer\n"
+        )
+        info = _parse_openssl_cert_info(sample)
+        assert info["subject"] == "OU=Teaching Sample,O=EmailGuard Demo,CN=EmailGuard Demo Signer"
+        assert info["issuer"] == info["subject"]  # self-signed sample certificate
+        assert info["valid_from"] == "Oct 11 10:49:43 2026 GMT"
+        assert info["valid_until"] == "Oct  8 10:49:43 2036 GMT"
+
+        # The RFC2253 "subject=" form must keep working as well.
+        assert _parse_openssl_cert_info("subject=CN=A\nissuer=CN=B\n") == {"subject": "CN=A", "issuer": "CN=B"}
 
     def test_openssl_unavailable_returns_graceful_status(self, monkeypatch):
         """SYNTHETIC: openssl binary unavailable → OPENSSL_UNAVAILABLE, not crash."""
