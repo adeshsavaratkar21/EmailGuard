@@ -1,0 +1,15 @@
+Authentication-Results: mx.campus-college.edu; spf=pass smtp.mailfrom=gmail.com;
+	dkim=pass header.d=gmail.com header.s=20230601; dmarc=pass header.from=gmail.com
+From: Priya Sharma <priya.sharma.demo@gmail.com>
+To: Student Demo <student.demo@campus-college.edu>
+Subject: Scholarship form acknowledgement
+Date: Sat, 10 Oct 2026 11:12:33 +0530
+Message-ID: <CAF7x1q9demo005@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+This copy contains only receiver-reported authentication headers and no
+transport information, so EmailGuard can label the claim but cannot
+verify it.
+
+Form portal: https://portal.example.com/forms

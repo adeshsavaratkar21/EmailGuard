@@ -1,0 +1,26 @@
+Return-Path: <priya.sharma.demo@gmail.com>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+	by mx.campus-college.edu (Postfix) with ESMTPS id 4A1B2C3D03
+	for <student.demo@campus-college.edu>; Sat, 10 Oct 2026 08:15:22 +0530 (IST)
+Authentication-Results: mx.campus-college.edu; spf=pass smtp.mailfrom=gmail.com;
+	dkim=pass header.d=gmail.com header.s=20230601; dmarc=pass header.from=gmail.com
+From: Priya Sharma <priya.sharma.demo@gmail.com>
+To: Student Demo <student.demo@campus-college.edu>
+Subject: Lab report attached
+Date: Sat, 10 Oct 2026 09:31:07 +0530
+Message-ID: <CAF7x1q9demo003@gmail.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="demo-attachment"
+
+--demo-attachment
+Content-Type: text/plain; charset=utf-8
+
+Please find the lab report attached. Nothing needs to be opened to
+analyse this message.
+--demo-attachment
+Content-Type: application/pdf; name="lab-report.pdf"
+Content-Disposition: attachment; filename="lab-report.pdf"
+Content-Transfer-Encoding: base64
+
+JVBERi1kZW1vIGF0dGFjaG1lbnQgYnl0ZXMgKG5vdCBhIHJlYWwgUERGKQ==
+--demo-attachment--

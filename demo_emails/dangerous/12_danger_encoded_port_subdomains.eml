@@ -1,0 +1,10 @@
+From: Accounts Team <accounts@cloud-storage-notice.example>
+To: Student Demo <student.demo@campus-college.edu>
+Subject: Storage quota exceeded - confirm your details
+Date: Sat, 10 Oct 2026 15:40:00 +0530
+Message-ID: <encode-20261010-12@cloud-storage-notice.example>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Your storage quota has been exceeded. Confirm your details here:
+http://a.b.c.d.secure-login.example:8080/%76erify

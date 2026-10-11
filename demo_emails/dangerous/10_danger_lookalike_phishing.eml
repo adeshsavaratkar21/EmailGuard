@@ -1,0 +1,18 @@
+Return-Path: <billing@paypa1-security.com>
+Authentication-Results: mx.synthetic-gateway.test; spf=pass smtp.mailfrom=paypa1-security.com;
+	dkim=fail header.d=paypa1-security.com; dmarc=fail header.from=paypa1-security.com policy=reject
+From: PayPal Billing <billing@paypa1-security.com>
+To: Student Demo <student.demo@campus-college.edu>
+Reply-To: security@paypa1-security.com
+Subject: Urgent: your account will be limited
+Date: Mon, 5 Oct 2026 09:20:00 +0530
+Message-ID: <phish-20261005-10@paypa1-security.com>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><body>
+<p>Dear customer,</p>
+<p>We detected unusual activity. Your account will be limited within 24 hours.</p>
+<p><a href="https://paypa1-security.com/login/verify">Verify your account</a></p>
+<p>Sign in to confirm your billing information.</p>
+</body></html>

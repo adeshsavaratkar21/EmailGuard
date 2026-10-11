@@ -1,0 +1,18 @@
+Return-Path: <friend.gmail.account@gmail.com>
+Received: from unknown-relay.attacker-net.example (unknown-relay.attacker-net.example. [8.8.8.8])
+	by mx.campus-college.edu (Postfix) with ESMTP id 9F8E7D6C08
+	for <student.demo@campus-college.edu>; Sat, 10 Oct 2026 13:44:10 +0530 (IST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmail.com;
+	s=20230601; h=from:to:subject:date:message-id;
+	bh=/Yq8qgp9PdDCWnBcaqoUneJoo/xp/lowqO6QrXdQBjU=;
+	b=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+From: Friend <friend.gmail.account@gmail.com>
+To: Student Demo <student.demo@campus-college.edu>
+Subject: Re: your notes (please check the attachment)
+Date: Sat, 10 Oct 2026 13:44:05 +0530
+Message-ID: <spoof-20261010-08@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+The text of this message does not match the body hash inside the
+DKIM-Signature header, so the signature cannot be valid for it.
