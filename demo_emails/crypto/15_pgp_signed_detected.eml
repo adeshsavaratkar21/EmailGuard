@@ -1,0 +1,26 @@
+Return-Path: <priya.sharma.demo@gmail.com>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+	by mx.campus-college.edu (Postfix) with ESMTPS id 4A1B2C3D15
+	for <student.demo@campus-college.edu>; Sat, 10 Oct 2026 08:15:22 +0530 (IST)
+From: Priya Sharma <priya.sharma.demo@gmail.com>
+To: Student Demo <student.demo@campus-college.edu>
+Subject: Signed project summary (OpenPGP)
+Date: Sat, 10 Oct 2026 16:35:00 +0530
+Message-ID: <CAF7x1q9demo015@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+This paragraph is the signed content of the message.
+The signature block below is a synthetic placeholder, not a real
+OpenPGP signature, so no tool can validate it as genuine.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQEzBAEBCgAdFiEEZGVtby1vbmx5LW5vdC1hLXJlYWwtc2lnbmF0dXJlAAoJEGRl
+bW8tb25seS1ub3QtYS1yZWFsLXNpZ25hdHVyZQf+ZGVtby1vbmx5LW5vdC1hLXJl
+YWwtc2lnbmF0dXJlLWJ5dGVzLWZvci1kZW1vbnN0cmF0aW9uLW9ubHk=
+=demo
+-----END PGP SIGNATURE-----

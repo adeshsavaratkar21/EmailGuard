@@ -1,0 +1,16 @@
+Return-Path: <alerts@icicibank.com>
+Received: from unknown-relay.attacker-net.example (unknown-relay.attacker-net.example. [8.8.8.8])
+	by mx.campus-college.edu (Postfix) with ESMTP id 9F8E7D6C07b
+	for <student.demo@campus-college.edu>; Sat, 10 Oct 2026 13:52:00 +0530 (IST)
+From: ICICI Bank Alerts <alerts@icicibank.com>
+To: Student Demo <student.demo@campus-college.edu>
+Subject: Alert: sign-in attempt on your account
+Date: Sat, 10 Oct 2026 13:51:58 +0530
+Message-ID: <spoof-20261010-07b@icicibank.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+We noticed a sign-in attempt on your account from an unrecognised device.
+
+This is a demonstration message. No link is included on purpose so that
+only the SPF / DMARC result is exercised.

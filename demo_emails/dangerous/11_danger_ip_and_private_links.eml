@@ -1,0 +1,13 @@
+From: IT Security <security@campus-college-alerts.test>
+To: Student Demo <student.demo@campus-college.edu>
+Subject: Immediate action required: verify your account
+Date: Sat, 10 Oct 2026 15:10:00 +0530
+Message-ID: <ipurl-20261010-11@campus-college-alerts.test>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Your account has been flagged. Verify here:
+http://93.184.216.34/secure/login
+
+Internal maintenance panel (staff only):
+http://127.0.0.1/admin

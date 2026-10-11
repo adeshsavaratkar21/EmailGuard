@@ -1,0 +1,26 @@
+Return-Path: <priya.sharma.demo@gmail.com>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+	by mx.campus-college.edu (Postfix) with ESMTPS id 4A1B2C3D14
+	for <student.demo@campus-college.edu>; Sat, 10 Oct 2026 08:15:22 +0530 (IST)
+From: Priya Sharma <priya.sharma.demo@gmail.com>
+To: Student Demo <student.demo@campus-college.edu>
+Subject: Confidential notes (PGP encrypted)
+Date: Sat, 10 Oct 2026 16:20:00 +0530
+Message-ID: <CAF7x1q9demo014@gmail.com>
+MIME-Version: 1.0
+Content-Type: multipart/encrypted; protocol="application/pgp-encrypted"; boundary="pgp-demo"
+
+--pgp-demo
+Content-Type: application/pgp-encrypted
+
+Version: 1
+--pgp-demo
+Content-Type: application/octet-stream
+
+-----BEGIN PGP MESSAGE-----
+Version: GnuPG v2
+
+hQEMA2RlbW9vbmx5bm90YXJlYWxrZXlzaWduYXR1cmVieXRlcw==
+=demo
+-----END PGP MESSAGE-----
+--pgp-demo--
