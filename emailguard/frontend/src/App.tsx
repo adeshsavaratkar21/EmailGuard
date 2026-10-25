@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronDown, Command, Menu, Moon, Sun, Wifi, WifiOff } from 'lucide-react';
+import { ChevronDown, Command, Menu, Wifi, WifiOff } from 'lucide-react';
 import { checkHealth, getAnalysis, getHistory, getStats, analyzeUrl } from './api';
 import { Dashboard } from './components/Dashboard';
 import { EmailWorkspace } from './components/EmailWorkspace';
@@ -27,28 +27,13 @@ export default function App() {
   const [activeChecksEnabled, setActiveChecksEnabled] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [toast, setToast] = useState('');
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('emailguard_theme');
-      if (stored === 'light' || stored === 'dark') return stored;
-      return 'dark'; // Dark is default SOC theme
-    }
-    return 'dark';
-  });
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('emailguard_theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
-  };
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light');
+    localStorage.setItem('emailguard_theme', 'light');
+  }, []);
 
   const refreshData = useCallback(async () => {
     try {
@@ -171,17 +156,6 @@ export default function App() {
               </div>
               <i className={`status-dot ${apiOnline === false ? 'offline-dot' : 'online-dot'}`} />
             </div>
-
-            {/* Light/Dark Theme Toggle */}
-            <button
-              className="theme-toggle-button"
-              onClick={toggleTheme}
-              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-            >
-              {theme === 'dark' ? <Sun size={15} strokeWidth={2} /> : <Moon size={15} strokeWidth={2} />}
-            </button>
-
             <span className="topbar-separator" />
 
             {/* User Avatar with Dropdown Affordance */}

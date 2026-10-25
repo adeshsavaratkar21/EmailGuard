@@ -130,12 +130,12 @@ function TrendChart({ range }: { range: string }) {
           <AreaChart data={data} margin={{ top: 12, right: 12, left: 24, bottom: 0 }}>
             <defs>
               <linearGradient id="neonEmeraldFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10B981" stopOpacity={0.35} />
-                <stop offset="60%" stopColor="#10B981" stopOpacity={0.08} />
-                <stop offset="100%" stopColor="#10B981" stopOpacity={0.0} />
+                <stop offset="0%" stopColor="#80B3FF" stopOpacity={0.35} />
+                <stop offset="60%" stopColor="#687EFF" stopOpacity={0.08} />
+                <stop offset="100%" stopColor="#687EFF" stopOpacity={0.0} />
               </linearGradient>
               <filter id="emeraldGlow" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#00F5A0" floodOpacity="0.6" />
+                <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#B6FFFA" floodOpacity="0.6" />
               </filter>
             </defs>
             <CartesianGrid vertical={false} stroke="rgba(255, 255, 255, 0.05)" strokeDasharray="3 4" />
@@ -149,21 +149,21 @@ function TrendChart({ range }: { range: string }) {
             <YAxis hide domain={[0, 100]} />
             <Tooltip
               content={<CustomChartTooltip deltaLabel={delta} />}
-              cursor={{ stroke: 'rgba(16, 185, 129, 0.4)', strokeDasharray: '3 3', strokeWidth: 1.5 }}
+              cursor={{ stroke: 'rgba(128, 179, 255, 0.4)', strokeDasharray: '3 3', strokeWidth: 1.5 }}
             />
             <Area
               type="monotone"
               dataKey="activity"
-              stroke="#10B981"
+              stroke="#80B3FF"
               strokeWidth={2.5}
               fill="url(#neonEmeraldFill)"
               filter="url(#emeraldGlow)"
               activeDot={{
                 r: 5,
                 fill: '#0B0F17',
-                stroke: '#00F5A0',
+                stroke: '#B6FFFA',
                 strokeWidth: 2.5,
-                filter: 'drop-shadow(0 0 6px #00F5A0)',
+                filter: 'drop-shadow(0 0 6px #B6FFFA)',
               }}
               isAnimationActive={true}
               animationDuration={700}
@@ -178,10 +178,10 @@ function TrendChart({ range }: { range: string }) {
 // Decorative Mini Sparklines for Metric Cards
 function CardSparkline({ tone }: { tone: 'mint' | 'rose' | 'blue' | 'violet' }) {
   const strokeMap = {
-    mint: '#10B981',
+    mint: '#80B3FF',
     rose: '#EF4444',
-    blue: '#38BDF8',
-    violet: '#8B5CF6',
+    blue: '#98E4FF',
+    violet: '#687EFF',
   };
   const pathMap = {
     mint: 'M2 22 C14 18 20 25 32 16 S48 15 58 19 S72 6 84 10 S98 7 110 3',
@@ -271,7 +271,7 @@ function DemoSpark() {
       <path
         d="M1 25 C10 21 13 27 21 19 S32 18 39 22 S50 8 58 13 S69 10 77 14 S84 5 89 4"
         fill="none"
-        stroke="#10B981"
+        stroke="#80B3FF"
         strokeWidth="2"
       />
     </svg>
@@ -328,7 +328,7 @@ function SegmentedDonut({
         role="img"
         aria-label={`Risk breakdown: Safe 74%, Suspicious 19%, Malicious 7% of ${totalCount} analyses`}
       >
-        <circle cx="70" cy="70" r={R} fill="none" stroke="rgba(255, 255, 255, 0.04)" strokeWidth="12" />
+        <circle cx="70" cy="70" r={R} fill="none" stroke="rgba(104, 126, 255, 0.12)" strokeWidth="11" />
 
         {/* Safe Segment */}
         <circle
@@ -336,7 +336,7 @@ function SegmentedDonut({
           cy="70"
           r={R}
           fill="none"
-          stroke="#10B981"
+          stroke="#80B3FF"
           strokeWidth="11"
           strokeLinecap="round"
           strokeDasharray={`${lenSafe} ${C - lenSafe}`}
@@ -345,7 +345,7 @@ function SegmentedDonut({
           className="donut-segment"
           style={{
             opacity: getOpacity('safe'),
-            filter: getGlow('safe', '#10B981'),
+            filter: getGlow('safe', '#B6FFFA'),
             transition: 'opacity 0.2s ease, filter 0.2s ease',
           }}
           onMouseEnter={() => setHoveredSegment('safe')}

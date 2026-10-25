@@ -1,52 +1,69 @@
 :root {
-  /* Theme: Dark (Default SOC Cybersecurity theme) */
-  --bg: #0B0F17;
-  --bg-elevated: #0F1520;
-  --surface: #141A26;
-  --surface-2: #1A2232;
-  --border: rgba(255, 255, 255, 0.06);
-  --border-strong: rgba(255, 255, 255, 0.12);
-  --text: #F1F5F9;
-  --text-muted: #94A3B8;
+  /* Default: Clean Light Security Theme */
+  --bg: #F4F7FB;
+  --bg-elevated: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-2: #F6F9FD;
+  --border: rgba(104, 126, 255, 0.14);
+  --border-strong: rgba(104, 126, 255, 0.25);
+  --text: #0F172A;
+  --text-muted: #475569;
   --text-subtle: #64748B;
-  --text-dim: #475569;
+  --text-dim: #94A3B8;
+
+  /* Custom 4-Color Palette:
+     #B6FFFA (Light Mint / Ice Cyan)
+     #98E4FF (Sky Blue / Cyan Accent)
+     #80B3FF (Periwinkle Blue / Cornflower)
+     #687EFF (Vibrant Indigo / Periwinkle Violet)
+  */
+  --palette-cyan-ice: #B6FFFA;
+  --palette-sky-blue: #98E4FF;
+  --palette-periwinkle: #80B3FF;
+  --palette-indigo: #687EFF;
+
+  /* Brand Accents & Theme mapping */
+  --brand-primary: #687EFF;
+  --brand-secondary: #80B3FF;
+  --brand-accent: #98E4FF;
+  --brand-glow: #B6FFFA;
 
   /* Semantic SOC accents */
-  --safe: #10B981;
-  --safe-glow: #00F5A0;
-  --safe-subtle: rgba(16, 185, 129, 0.12);
-  --safe-border: rgba(16, 185, 129, 0.3);
+  --safe: #4F46E5;
+  --safe-glow: #687EFF;
+  --safe-subtle: rgba(104, 126, 255, 0.1);
+  --safe-border: rgba(104, 126, 255, 0.25);
 
-  --warn: #F59E0B;
-  --warn-glow: #FBBF24;
-  --warn-subtle: rgba(245, 158, 11, 0.12);
-  --warn-border: rgba(245, 158, 11, 0.3);
+  --warn: #D97706;
+  --warn-glow: #F59E0B;
+  --warn-subtle: rgba(217, 119, 6, 0.1);
+  --warn-border: rgba(217, 119, 6, 0.25);
 
-  --danger: #EF4444;
-  --danger-glow: #F87171;
-  --danger-subtle: rgba(239, 68, 68, 0.12);
-  --danger-border: rgba(239, 68, 68, 0.3);
+  --danger: #DC2626;
+  --danger-glow: #EF4444;
+  --danger-subtle: rgba(220, 38, 38, 0.1);
+  --danger-border: rgba(220, 38, 38, 0.25);
 
-  --info: #38BDF8;
-  --info-glow: #7DD3FC;
-  --info-subtle: rgba(56, 189, 248, 0.12);
-  --info-border: rgba(56, 189, 248, 0.3);
+  --info: #0284C7;
+  --info-glow: #38BDF8;
+  --info-subtle: rgba(2, 132, 199, 0.1);
+  --info-border: rgba(2, 132, 199, 0.25);
 
-  --accent-violet: #8B5CF6;
-  --accent-violet-glow: #A78BFA;
-  --accent-violet-subtle: rgba(139, 92, 246, 0.12);
-  --accent-violet-border: rgba(139, 92, 246, 0.3);
+  --accent-violet: #687EFF;
+  --accent-violet-glow: #80B3FF;
+  --accent-violet-subtle: rgba(104, 126, 255, 0.1);
+  --accent-violet-border: rgba(104, 126, 255, 0.25);
 
-  /* Layout & Glassmorphism */
-  --topbar-bg: rgba(11, 15, 23, 0.75);
-  --sidebar-bg: #0D121C;
-  --sidebar-border: rgba(255, 255, 255, 0.06);
-  --card-glass: rgba(20, 26, 38, 0.7);
-  --card-glass-hover: rgba(24, 32, 47, 0.82);
-  --card-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.4), 0 2px 6px -1px rgba(0, 0, 0, 0.3);
-  --shadow-glow-emerald: 0 0 24px rgba(16, 185, 129, 0.25);
-  --shadow-glow-active: 0 0 24px rgba(16, 185, 129, 0.35);
+  /* Layout & Glassmorphism - Light Palette Sidebar */
+  --topbar-bg: rgba(255, 255, 255, 0.94);
+  --sidebar-bg: linear-gradient(180deg, #FFFFFF 0%, #F5F9FF 35%, #EBF4FF 70%, #E3EFFF 100%);
+  --sidebar-border: rgba(104, 126, 255, 0.18);
+  --card-glass: #FFFFFF;
+  --card-glass-hover: #F8FAFC;
+  --card-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --shadow-card: 0 4px 16px -2px rgba(104, 126, 255, 0.08), 0 1px 4px rgba(15, 23, 42, 0.04);
+  --shadow-glow-emerald: 0 0 20px rgba(104, 126, 255, 0.22);
+  --shadow-glow-active: 0 0 24px rgba(104, 126, 255, 0.32);
 
   /* Radius Scale */
   --radius-xs: 4px;
@@ -72,58 +89,6 @@
   --space-10: 40px;
 
   /* Atmosphere layers */
-  --atmosphere-radial: radial-gradient(ellipse 70% 50% at 8% 0%, rgba(16, 185, 129, 0.065), transparent 70%);
-  --atmosphere-grid: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-}
-
-/* Light Theme overrides */
-:root[data-theme="light"], .light {
-  --bg: #F5F7FB;
-  --bg-elevated: #FFFFFF;
-  --surface: #FFFFFF;
-  --surface-2: #F8FAFC;
-  --border: rgba(15, 23, 42, 0.08);
-  --border-strong: rgba(15, 23, 42, 0.14);
-  --text: #0F172A;
-  --text-muted: #475569;
-  --text-subtle: #64748B;
-  --text-dim: #94A3B8;
-
-  --safe: #059669;
-  --safe-glow: #10B981;
-  --safe-subtle: rgba(5, 150, 105, 0.1);
-  --safe-border: rgba(5, 150, 105, 0.25);
-
-  --warn: #D97706;
-  --warn-glow: #F59E0B;
-  --warn-subtle: rgba(217, 119, 6, 0.1);
-  --warn-border: rgba(217, 119, 6, 0.25);
-
-  --danger: #DC2626;
-  --danger-glow: #EF4444;
-  --danger-subtle: rgba(220, 38, 38, 0.1);
-  --danger-border: rgba(220, 38, 38, 0.25);
-
-  --info: #0284C7;
-  --info-glow: #38BDF8;
-  --info-subtle: rgba(2, 132, 199, 0.1);
-  --info-border: rgba(2, 132, 199, 0.25);
-
-  --accent-violet: #7C3AED;
-  --accent-violet-glow: #8B5CF6;
-  --accent-violet-subtle: rgba(124, 58, 237, 0.1);
-  --accent-violet-border: rgba(124, 58, 237, 0.25);
-
-  --topbar-bg: rgba(255, 255, 255, 0.88);
-  --sidebar-bg: #111C30;
-  --sidebar-border: rgba(255, 255, 255, 0.08);
-  --card-glass: #FFFFFF;
-  --card-glass-hover: #F8FAFC;
-  --card-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  --shadow-card: 0 2px 8px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.02);
-  --shadow-glow-emerald: 0 0 20px rgba(5, 150, 105, 0.2);
-  --shadow-glow-active: 0 0 24px rgba(5, 150, 105, 0.28);
-
-  --atmosphere-radial: radial-gradient(ellipse 70% 50% at 8% 0%, rgba(16, 185, 129, 0.035), transparent 70%);
-  --atmosphere-grid: radial-gradient(rgba(15, 23, 42, 0.03) 1px, transparent 1px);
+  --atmosphere-radial: radial-gradient(ellipse 70% 50% at 8% 0%, rgba(104, 126, 255, 0.06), transparent 70%);
+  --atmosphere-grid: radial-gradient(rgba(104, 126, 255, 0.04) 1px, transparent 1px);
 }

@@ -67,7 +67,7 @@ export function Sidebar({ page, onNavigate, isOpen = false, onClose }: { page: P
           <svg className="heartbeat-line" viewBox="0 0 38 14" fill="none">
             <path
               d="M1 7 H12 L15 1 L19 13 L23 4 L26 9 L28 7 H37"
-              stroke="var(--safe)"
+              stroke="var(--palette-sky-blue)"
               strokeWidth="1.6"
               strokeLinecap="round"
               strokeLinejoin="round"
