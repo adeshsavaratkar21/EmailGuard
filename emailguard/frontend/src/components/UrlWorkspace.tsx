@@ -6,6 +6,7 @@ import {
 import { analyzeUrl } from '../api';
 import type { AnalysisReport, RiskFactor } from '../types';
 import { ClassificationBadge, ScoreRing } from './ScoreRing';
+import { ScoreMathExplainer } from './ScoreMathExplainer';
 
 export function UrlWorkspace({ report, onReport }: { report: AnalysisReport | null; onReport: (report: AnalysisReport) => void }) {
   const [url, setUrl] = useState('');
@@ -75,6 +76,8 @@ function UrlReport({ report }: { report: AnalysisReport }) {
         <div className="url-recommendation"><span className={`recommendation-icon rec-${report.classification.toLowerCase()}`}>{report.classification === 'SAFE' ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}</span><div><small>RECOMMENDED ACTION</small><strong>{report.recommendation === 'WARN' ? 'WARN · confirm the destination independently' : report.recommendation}</strong></div></div>
       </div>
     </section>
+
+    <ScoreMathExplainer report={report} />
 
     <div className="url-inspection-grid">
       <section className="card url-detail-card">

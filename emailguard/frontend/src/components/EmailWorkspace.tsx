@@ -8,6 +8,7 @@ import { analyzeEmail } from '../api';
 import { DEMO_REPORT } from '../data/demo';
 import type { AnalysisReport } from '../types';
 import { ClassificationBadge, ScoreRing } from './ScoreRing';
+import { ScoreMathExplainer } from './ScoreMathExplainer';
 
 export function EmailWorkspace({ report, onReport, onAnalyzeUrl }: {
   report: AnalysisReport | null;
@@ -182,6 +183,8 @@ function EmailReport({ report, onAnalyzeAnother, onAnalyzeUrl }: { report: Analy
           {email?.urls_truncated && <div className="scan-limit-note">Only the first URLs were analyzed; the message contained more than the configured limit.</div>}
         </section>
       </div>
+
+      <ScoreMathExplainer report={report} />
 
       <section className="card factors-card">
         <div className="section-heading"><div><h2>Why this score?</h2><p>Each signal contributes transparently to the prototype score</p></div><span className="risk-score-small">Risk score <b>{report.risk_score}/100</b></span></div>
